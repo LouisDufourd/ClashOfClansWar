@@ -1,6 +1,7 @@
 package com.plaglefleau.clashofclansmanage.discord.buttons.execution
 
 import com.plaglefleau.clashofclansmanage.database.AccountManager
+import com.plaglefleau.clashofclansmanage.database.WarManager
 import com.plaglefleau.clashofclansmanage.utils.DiscordEventReply
 import com.plaglefleau.clashofclansmanage.utils.DiscordModal
 import com.plaglefleau.clashofclansmanage.utils.DiscordPermission
@@ -11,7 +12,7 @@ import net.dv8tion.jda.api.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.modals.Modal
 
-class JoinWarButton: DiscordExecuteButton {
+class LeaveWarButton: DiscordExecuteButton {
     override fun execute(event: ButtonInteractionEvent) {
         val member = event.member
         val guild = event.guild
@@ -28,10 +29,13 @@ class JoinWarButton: DiscordExecuteButton {
                 """.trimIndent()
             )
 
-        val playerTags = AccountManager().getPlayerTags(member.id)
+        val playerTags = AccountManager().getPlayerTags(member.id).filter { tag ->
+            val manager = WarManager()
+            manager.getPlayerInscriptionForWar(manager.getNextWarId(), tag)?.participation ?: false
+        }
 
         if (playerTags.isEmpty()) return DiscordEventReply.replyEphemeralMessage(event, "Erreur: Aucun compte clash of clan n'a été trouvé pour le membre ${member.effectiveName}.")
 
-        event.replyModal(DiscordModal.createWarInscriptionModal(playerTags, "join-war-modal")).queue()
+        event.replyModal(DiscordModal.createWarInscriptionModal(playerTags, "leave-war-modal")).queue()
     }
 }

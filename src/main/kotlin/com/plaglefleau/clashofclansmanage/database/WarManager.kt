@@ -79,6 +79,19 @@ class WarManager {
         return inscriptions.toList()
     }
 
+    fun getPlayerInscriptionForWar(warId: Int, playerTag: String) : InscriptionGuerre? {
+        val statement = connector.getPreparedStatement("select * from inscription_guerre where pk_iguerre_id = ? and pk_iaccount_id = ?;")
+        statement.setInt(1, warId)
+        statement.setString(2, playerTag)
+        val resultSet = statement.executeQuery()
+        val guerre = getWar(warId)
+        val compte = AccountManager().getClashAccount(playerTag)
+        if(resultSet.next()) {
+            return InscriptionGuerre(guerre, compte, resultSet.getBoolean("participation"))
+        }
+        return null
+    }
+
     /**
      * Retrieves the ID of the next war that has not yet started.
      * If no such war exists, returns -1.

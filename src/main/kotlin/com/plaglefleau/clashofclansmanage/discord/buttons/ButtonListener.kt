@@ -8,6 +8,7 @@ class ButtonListener: ListenerAdapter() {
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
         when(event.componentId) {
             "join-war" -> JoinWarButton().execute(event)
+            "leave-war" -> LeaveWarButton().execute(event)
         }
     }
 }

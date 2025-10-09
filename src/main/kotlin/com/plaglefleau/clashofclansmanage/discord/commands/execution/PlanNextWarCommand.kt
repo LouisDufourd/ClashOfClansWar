@@ -33,8 +33,14 @@ class PlanNextWarCommand: DiscordCommand {
 
         val roles = DiscordPermission.getRolesByNames(guild, DiscordUser.LEADER, DiscordUser.COLEADER)
 
-        if(!DiscordPermission.hasPermission(member, roles)) return
-            DiscordEventReply.hookEphemeralMessage(event, "Erreur: Tu n'as pas les permissions pour utiliser cette commande")
+        if(!DiscordPermission.hasPermission(member, roles))
+            return DiscordEventReply.hookEphemeralMessage(event, "Erreur: Tu n'as pas les permissions pour utiliser cette commande")
+
+        val manager = WarManager()
+        val nextWar = manager.getWar(manager.getNextWarId())
+
+        if(nextWar.dateDebut.time > Calendar.getInstance().time)
+            return DiscordEventReply.hookEphemeralMessage(event, "Erreur la prochaine guerre n'as pas encore commencé")
 
         val date = event.getOption("start_time")?.asString ?: return DiscordEventReply.hookEphemeralMessage(
             event,

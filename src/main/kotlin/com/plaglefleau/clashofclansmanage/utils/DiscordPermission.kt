@@ -39,16 +39,16 @@ object DiscordPermission {
             if (member.roles.contains(role)) return true
         }
 
-        return false;
+        return false
     }
 
     fun getRolesByNames(guild: Guild, vararg roleNames: String): List<Role> {
-        val roles = listOf<Role>()
+        val roles = mutableListOf<Role>()
         roleNames.forEach { roleName ->
             if (roleName.isBlank()) return emptyList()
             val role = guild.getRolesByName(roleName, true).firstOrNull()
 
-            if(role != null) roles.plus(role)
+            if(role != null) roles.add(role)
         }
         return roles
     }

@@ -2,6 +2,7 @@ package com.plaglefleau.clashofclansmanage.discord.buttons.execution
 
 import com.plaglefleau.clashofclansmanage.database.AccountManager
 import com.plaglefleau.clashofclansmanage.utils.DiscordEventReply
+import com.plaglefleau.clashofclansmanage.utils.DiscordPermission
 import com.plaglefleau.clashofclansmanage.utils.DiscordUser
 import net.dv8tion.jda.api.components.label.Label
 import net.dv8tion.jda.api.components.selections.SelectOption
@@ -15,10 +16,11 @@ class JoinWarButton: DiscordExecuteButton {
         val guild = event.guild
 
         if (member == null || guild == null)
-            return DiscordEventReply.hookEphemeralMessage(event, "Erreur: Impossible de trouver le membre ou le serveur.")
+            return DiscordEventReply.replyEphemeralMessage(event, "Erreur: Impossible de trouver le membre ou le serveur.")
 
-        if(member.roles.contains(guild.getRolesByName(DiscordUser.NOT_MEMBER, true).firstOrNull()))
-            return DiscordEventReply.hookEphemeralMessage(event,
+        if(DiscordPermission.hasPermission(member, DiscordPermission.getRolesByNames(guild, DiscordUser.NOT_MEMBER)))
+            return DiscordEventReply.replyEphemeralMessage(
+                event,
                 """
                     Erreur: Vous n'êtes pas un membre du clan. 
                     Veuillez lié votre compte clash à votre compte discord en utilisant la commande /link <tagJoueur> <jetonApi>.
@@ -27,9 +29,9 @@ class JoinWarButton: DiscordExecuteButton {
 
         val playerTags = AccountManager().getPlayerTags(member.id)
 
-        if (playerTags.isEmpty()) return DiscordEventReply.hookEphemeralMessage(event, "Erreur: Aucun compte clash of clan n'a été trouvé pour le membre ${member.effectiveName}.")
+        if (playerTags.isEmpty()) return DiscordEventReply.replyEphemeralMessage(event, "Erreur: Aucun compte clash of clan n'a été trouvé pour le membre ${member.effectiveName}.")
 
-        event.replyModal(createModal(playerTags))
+        event.replyModal(createModal(playerTags)).queue()
     }
 
     private fun createModal(playerTags: List<String>): Modal {

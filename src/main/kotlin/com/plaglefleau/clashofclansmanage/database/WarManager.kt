@@ -6,6 +6,7 @@ import com.plaglefleau.clashofclansmanage.database.models.Guerre
 import com.plaglefleau.clashofclansmanage.database.models.InscriptionGuerre
 import com.plaglefleau.clashofclansmanage.database.models.Rang
 import com.plaglefleau.clashofclansmanage.database.models.StatDeGuerre
+import java.util.Calendar
 
 class WarManager {
     private val connector = Connector()
@@ -20,14 +21,15 @@ class WarManager {
         var nextWarId = getNextWarId()
 
         if(nextWarId == -1) {
-            createNewWar()
+            val calendar = Calendar.getInstance()
+            createNewWar(calendar)
             nextWarId = getNextWarId()
         }
 
-        val preparedStatement = connector.getPreparedStatement("insert into inscription_guerre (pk_iguerre_id, pk_iaccount_id, participation) values (?, ?, ?)")
-        preparedStatement.setInt(1, nextWarId)
-        preparedStatement.setString(2, playerTag)
-        preparedStatement.setBoolean(3, doesJoin)
+        val preparedStatement = connector.getPreparedStatement("update inscription_guerre set participation = ? where pk_iguerre_id = ? and pk_iaccount_id = ?;")
+        preparedStatement.setBoolean(1, doesJoin)
+        preparedStatement.setInt(2, nextWarId)
+        preparedStatement.setString(3, playerTag)
 
         preparedStatement.executeUpdate()
 
@@ -44,12 +46,16 @@ class WarManager {
     fun getInscriptionsForWar(warId: Int): List<InscriptionGuerre> {
         val statement = connector
             .getPreparedStatement(
-                sql="select c.*, ? as guerre_id, case when ig.pk_iguerre_id = ? then ig.participation else false end as participation from compte_clash c " +
-                    "left join inscription_guerre ig on ig.pk_iaccount_id = c.pk_account_id " +
-                    "left join guerre g on g.pk_guerre_id = ig.pk_iguerre_id;"
+                sql="""
+                    select c.*, ? as guerre_id, case when ig.pk_iguerre_id = ? then ig.participation else false end as participation 
+                    from compte_clash c
+                    left join inscription_guerre ig on ig.pk_iaccount_id = c.pk_account_id
+                    left join guerre g on g.pk_guerre_id = ig.pk_iguerre_id where g.pk_guerre_id = ? and ig.participation;
+                """.trimIndent()
             )
         statement.setInt(1, warId)
         statement.setInt(2, warId)
+        statement.setInt(3, warId)
         val resultSet = statement.executeQuery()
         val inscriptions = mutableListOf<InscriptionGuerre>()
         while (resultSet.next()) {
@@ -57,10 +63,10 @@ class WarManager {
                 InscriptionGuerre(
                     guerre = getWar(warId),
                     compte = CompteClash(
-                        idCompte = resultSet.getString("pk_iaccount_id"),
-                        pseudo = resultSet.getString("pseudo"),
+                        idCompte = resultSet.getString("pk_account_id"),
+                        pseudo = resultSet.getString("nom"),
                         rang = Rang.valueOf(resultSet.getString("rang")),
-                        compteDiscord = resultSet.getString("compte_discord")?.let {
+                        compteDiscord = resultSet.getString("fk_discord_account")?.let {
                             CompteDiscord(it)
                         }
                     ),
@@ -82,7 +88,7 @@ class WarManager {
     fun getNextWarId(): Int {
         val statement = connector.getStatement()
         val resultSet = statement
-            .executeQuery("select pk_guerre_id from guerre where debut_guerre is null")
+            .executeQuery("select pk_guerre_id from guerre order by datedebut desc limit 1;")
 
         if (!resultSet.next()) {
             return -1
@@ -107,10 +113,13 @@ class WarManager {
         statement.setInt(1, warId)
         val resultSet = statement.executeQuery()
         if(resultSet.next()) {
+            val start = Calendar.getInstance();
+            start.timeInMillis = resultSet.getTimestamp("datedebut").time;
             val guerre = Guerre(
                 idGuerre = resultSet.getInt("pk_guerre_id"),
-                nombreEtoileClan = resultSet.getInt("nombre_etoile_clan"),
-                nombreEtoileOppose = resultSet.getInt("nombre_etoile_oppose"),
+                nombreEtoileClan = resultSet.getInt("nb_etoile_clan"),
+                nombreEtoileOppose = resultSet.getInt("nb_etoile_clan_adverse"),
+                dateDebut = start,
                 statDeGuerre = getWarStat(warId)
             )
             connector.disconnect()
@@ -129,14 +138,14 @@ class WarManager {
      * @return A list of `StatDeGuerre`, each containing player account details and their number of attacks.
      */
     fun getWarStat(warId: Int): List<StatDeGuerre> {
-        val statement = connector.getPreparedStatement("select * from stat_de_guerre where pk_iguerre_id = ?")
+        val statement = connector.getPreparedStatement("select * from stat_de_guerre where pk_sguerre_id = ?")
         statement.setInt(1, warId)
         val resultSet = statement.executeQuery()
         val stats = mutableListOf<StatDeGuerre>()
         while (resultSet.next()) {
             stats.add(
                 StatDeGuerre(
-                    compteClash = AccountManager().getClashAccount(resultSet.getString("pk_iaccount_id")),
+                    compteClash = AccountManager().getClashAccount(resultSet.getString("pk_saccount_id")),
                     nbAttaques = resultSet.getInt("nb_attaques")
                 )
             )
@@ -180,12 +189,28 @@ class WarManager {
      * @return A list of `CompteClash` objects representing players with fewer than two attacks in the specified war.
      */
     fun getPlayerWithLessThanTwoAttack(warId: Int): List<CompteClash> {
-        val statement = connector.getPreparedStatement("select * from stat_de_guerre where pk_iguerre_id = ? and nb_attaques < 2")
+        val statement = connector.getPreparedStatement(
+            """
+                select c.* from stat_de_guerre s
+                join compte_clash c on s.pk_saccount_id = c.pk_account_id 
+                join inscription_guerre i on i.pk_iguerre_id = s.pk_sguerre_id and i.pk_iaccount_id = s.pk_saccount_id
+                where pk_sguerre_id = 6 and s.nb_attaque < 2 and i.participation;
+            """.trimIndent()
+        )
         statement.setInt(1, warId)
         val resultSet = statement.executeQuery()
         val players = mutableListOf<CompteClash>()
         while (resultSet.next()) {
-            players.add(AccountManager().getClashAccount(resultSet.getString("pk_iaccount_id")))
+            players.add(
+                CompteClash(
+                    idCompte = resultSet.getString("pk_account_id"),
+                    pseudo = resultSet.getString("nom"),
+                    rang = Rang.valueOf(resultSet.getString("rang")),
+                    compteDiscord = resultSet.getString("fk_discord_account")?.let {
+                        CompteDiscord(it)
+                    }
+                )
+            )
         }
 
         connector.disconnect()
@@ -206,10 +231,41 @@ class WarManager {
      * Throws:
      * - `SQLException` if there is an issue executing the update.
      */
-    fun createNewWar() {
-        val statement = connector.getStatement()
-        statement.executeUpdate("insert into guerre default values")
+    fun createNewWar(startTime : Calendar) {
+        val statement = connector.getPreparedStatement("select createWarInscription(?)")
+        statement.setTimestamp(1, java.sql.Timestamp(startTime.timeInMillis))
+        statement.execute()
+        connector.disconnect()
+    }
 
+    /**
+     * Adds a player's statistic record for a specific war to the database.
+     *
+     * @param warId The unique identifier of the war for which the statistic is being added.
+     * @param playerTag The unique tag of the player whose statistic is being recorded.
+     */
+    fun addWarStat(warId: Int?, playerTag: String) {
+        val preparedStatement = connector.getPreparedStatement("select addWarStat(?::varchar, ?::int2);")
+        preparedStatement.setString(1, playerTag)
+        if(warId != null) preparedStatement.setInt(2, warId)
+        else preparedStatement.setNull(2, java.sql.Types.INTEGER)
+        preparedStatement.execute()
+        connector.disconnect()
+    }
+
+    /**
+     * Updates the war statistics for a given player in a specific war by setting the number of attacks.
+     *
+     * @param warId The unique identifier of the war to be updated.
+     * @param playerTag The unique tag of the player whose statistics are being updated.
+     * @param nbAttaques The number of attacks performed by the player in the specified war.
+     */
+    fun updateWarStat(warId: Int, playerTag: String, nbAttaques: Int) {
+        val preparedStatement = connector.getPreparedStatement("select updateWarStat(?, ?::int2, ?::int2);")
+        preparedStatement.setString(1, playerTag)
+        preparedStatement.setInt(2, warId)
+        preparedStatement.setInt(3, nbAttaques)
+        preparedStatement.execute()
         connector.disconnect()
     }
 }

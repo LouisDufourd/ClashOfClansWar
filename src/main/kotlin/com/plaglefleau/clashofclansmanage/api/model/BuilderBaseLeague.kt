@@ -1,0 +1,6 @@
+package com.plaglefleau.clashofclansmanage.api.model
+
+data class BuilderBaseLeague(
+    val id: Int,
+    val name: String
+)

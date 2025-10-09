@@ -15,7 +15,7 @@ class Connector {
     fun connect() {
         synchronized(lock) {
             // Close existing connection if present
-            if (connection != null && !connection!!.isClosed) {
+            if (connection != null && connection!!.isClosed) {
                 connection!!.close()
             }
 

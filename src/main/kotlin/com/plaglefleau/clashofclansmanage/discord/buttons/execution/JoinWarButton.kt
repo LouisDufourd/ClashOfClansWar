@@ -1,6 +1,7 @@
 package com.plaglefleau.clashofclansmanage.discord.buttons.execution
 
 import com.plaglefleau.clashofclansmanage.database.AccountManager
+import com.plaglefleau.clashofclansmanage.database.WarManager
 import com.plaglefleau.clashofclansmanage.utils.DiscordEventReply
 import com.plaglefleau.clashofclansmanage.utils.DiscordModal
 import com.plaglefleau.clashofclansmanage.utils.DiscordPermission
@@ -28,7 +29,10 @@ class JoinWarButton: DiscordExecuteButton {
                 """.trimIndent()
             )
 
-        val playerTags = AccountManager().getPlayerTags(member.id)
+        val playerTags = AccountManager().getPlayerTags(member.id).filter { tag ->
+            val manager = WarManager()
+            !(manager.getPlayerInscriptionForWar(manager.getNextWarId(), tag)?.participation ?: true)
+        }
 
         if (playerTags.isEmpty()) return DiscordEventReply.replyEphemeralMessage(event, "Erreur: Aucun compte clash of clan n'a été trouvé pour le membre ${member.effectiveName}.")
 

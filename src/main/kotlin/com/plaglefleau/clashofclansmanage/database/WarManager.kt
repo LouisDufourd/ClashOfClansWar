@@ -6,6 +6,7 @@ import com.plaglefleau.clashofclansmanage.database.models.Guerre
 import com.plaglefleau.clashofclansmanage.database.models.InscriptionGuerre
 import com.plaglefleau.clashofclansmanage.database.models.Rang
 import com.plaglefleau.clashofclansmanage.database.models.StatDeGuerre
+import java.sql.Timestamp
 import java.util.Calendar
 
 class WarManager {
@@ -20,13 +21,14 @@ class WarManager {
     fun joinNextWar(playerTag: String, doesJoin: Boolean = true) {
         var nextWarId = getNextWarId()
 
-        if(nextWarId == -1) {
+        if (nextWarId == -1) {
             val calendar = Calendar.getInstance()
             createNewWar(calendar)
             nextWarId = getNextWarId()
         }
 
-        val preparedStatement = connector.getPreparedStatement("update inscription_guerre set participation = ? where pk_iguerre_id = ? and pk_iaccount_id = ?;")
+        val preparedStatement =
+            connector.getPreparedStatement("update inscription_guerre set participation = ? where pk_iguerre_id = ? and pk_iaccount_id = ?;")
         preparedStatement.setBoolean(1, doesJoin)
         preparedStatement.setInt(2, nextWarId)
         preparedStatement.setString(3, playerTag)
@@ -46,7 +48,7 @@ class WarManager {
     fun getInscriptionsForWar(warId: Int): List<InscriptionGuerre> {
         val statement = connector
             .getPreparedStatement(
-                sql="""
+                sql = """
                     select c.*, ? as guerre_id, case when ig.pk_iguerre_id = ? then ig.participation else false end as participation 
                     from compte_clash c
                     left join inscription_guerre ig on ig.pk_iaccount_id = c.pk_account_id
@@ -79,29 +81,33 @@ class WarManager {
         return inscriptions.toList()
     }
 
-    fun getPlayerInscriptionForWar(warId: Int, playerTag: String) : InscriptionGuerre? {
-        val statement = connector.getPreparedStatement("select * from inscription_guerre where pk_iguerre_id = ? and pk_iaccount_id = ?;")
+    fun getPlayerInscriptionForWar(warId: Int, playerTag: String): InscriptionGuerre? {
+        val statement =
+            connector.getPreparedStatement("select * from inscription_guerre where pk_iguerre_id = ? and pk_iaccount_id = ?;")
         statement.setInt(1, warId)
         statement.setString(2, playerTag)
         val resultSet = statement.executeQuery()
         val guerre = getWar(warId)
         val compte = AccountManager().getClashAccount(playerTag)
-        if(resultSet.next()) {
+        if (resultSet.next()) {
             return InscriptionGuerre(guerre, compte, resultSet.getBoolean("participation"))
         }
         return null
     }
 
     /**
-     * Retrieves the ID of the next war that has not yet started.
-     * If no such war exists, returns -1.
+     * Retrieves the unique identifier of the most recent war based on the start date.
      *
-     * @return The ID of the next war or -1 if no war is available.
+     * This method queries the `guerre` table in the database to fetch the primary key (`pk_guerre_id`)
+     * of the latest war record, ordered by the start date in descending order. If no war is found
+     * in the database, the method returns -1. The database connection is managed via the `connector` object.
+     *
+     * @return The unique ID of the most recent war, or -1 if no war exists in the database.
      */
-    fun getNextWarId(): Int {
-        val statement = connector.getStatement()
-        val resultSet = statement
-            .executeQuery("select pk_guerre_id from guerre order by datedebut desc limit 1;")
+    fun getNextWarId(before: Calendar = Calendar.getInstance()): Int {
+        val statement = connector
+            .getPreparedStatement("select pk_guerre_id from guerre order by datedebut desc limit 1;")
+        val resultSet = statement.executeQuery()
 
         if (!resultSet.next()) {
             return -1
@@ -125,7 +131,7 @@ class WarManager {
         val statement = connector.getPreparedStatement("select * from guerre where pk_guerre_id = ?")
         statement.setInt(1, warId)
         val resultSet = statement.executeQuery()
-        if(resultSet.next()) {
+        if (resultSet.next()) {
             val start = Calendar.getInstance();
             start.timeInMillis = resultSet.getTimestamp("datedebut").time;
             val guerre = Guerre(
@@ -137,8 +143,7 @@ class WarManager {
             )
             connector.disconnect()
             return guerre
-        }
-        else {
+        } else {
             connector.disconnect()
             throw Exception("No war found for id $warId")
         }
@@ -151,7 +156,7 @@ class WarManager {
      * @return A list of `StatDeGuerre`, each containing player account details and their number of attacks.
      */
     fun getWarStat(warId: Int): List<StatDeGuerre> {
-        val statement = connector.getPreparedStatement("select * from stat_de_guerre where pk_sguerre_id = ?")
+        val statement = connector.getPreparedStatement("select pk_saccount_id, nb_attaque from stat_de_guerre where pk_sguerre_id = ?")
         statement.setInt(1, warId)
         val resultSet = statement.executeQuery()
         val stats = mutableListOf<StatDeGuerre>()
@@ -159,7 +164,7 @@ class WarManager {
             stats.add(
                 StatDeGuerre(
                     compteClash = AccountManager().getClashAccount(resultSet.getString("pk_saccount_id")),
-                    nbAttaques = resultSet.getInt("nb_attaques")
+                    nbAttaques = resultSet.getInt("nb_attaque")
                 )
             )
         }
@@ -176,20 +181,20 @@ class WarManager {
      * @return A `StatDeGuerre` object containing the player's account and the number of attacks performed in the specified war.
      * @throws Exception If no statistics are found for the given war and player tag.
      */
-    fun getPlayerWarStat(warId: Int, playerTag: String) : StatDeGuerre {
-        val statement = connector.getPreparedStatement("select * from stat_de_guerre where pk_iguerre_id = ? and pk_iaccount_id = ?")
+    fun getPlayerWarStat(warId: Int, playerTag: String): StatDeGuerre {
+        val statement =
+            connector.getPreparedStatement("select * from stat_de_guerre where pk_iguerre_id = ? and pk_iaccount_id = ?")
         statement.setInt(1, warId)
         statement.setString(2, playerTag)
         val resultSet = statement.executeQuery()
-        if(resultSet.next()) {
+        if (resultSet.next()) {
             val stat = StatDeGuerre(
                 compteClash = AccountManager().getClashAccount(resultSet.getString("pk_iaccount_id")),
                 nbAttaques = resultSet.getInt("nb_attaques")
             )
             connector.disconnect()
             return stat
-        }
-        else {
+        } else {
             connector.disconnect()
             throw Exception("No stat found for war $warId and player $playerTag")
         }
@@ -244,7 +249,7 @@ class WarManager {
      * Throws:
      * - `SQLException` if there is an issue executing the update.
      */
-    fun createNewWar(startTime : Calendar) {
+    fun createNewWar(startTime: Calendar) {
         val statement = connector.getPreparedStatement("select createWarInscription(?)")
         statement.setTimestamp(1, java.sql.Timestamp(startTime.timeInMillis))
         statement.execute()
@@ -260,7 +265,7 @@ class WarManager {
     fun addWarStat(warId: Int?, playerTag: String) {
         val preparedStatement = connector.getPreparedStatement("select addWarStat(?::varchar, ?::int2);")
         preparedStatement.setString(1, playerTag)
-        if(warId != null) preparedStatement.setInt(2, warId)
+        if (warId != null) preparedStatement.setInt(2, warId)
         else preparedStatement.setNull(2, java.sql.Types.INTEGER)
         preparedStatement.execute()
         connector.disconnect()
@@ -279,6 +284,52 @@ class WarManager {
         preparedStatement.setInt(2, warId)
         preparedStatement.setInt(3, nbAttaques)
         preparedStatement.execute()
+        connector.disconnect()
+    }
+
+    /**
+     * Retrieves the unique ID of a war based on its start date.
+     *
+     * This method queries the database for a war entry with the specified start time
+     * and returns its unique identifier if found. If no war matches the given start time,
+     * the method returns null. The database connection is managed by the connector object.
+     *
+     * @param startTime The start date and time of the war to query. This parameter is used
+     *                  to filter the war records in the database.
+     * @return The unique ID of the war if a match is found, or null if no matching war exists.
+     */
+    fun getWarIdByDate(startTime: Calendar): Int? {
+        val preparedStatement = connector.getPreparedStatement("select pk_guerre_id from guerre where datedebut = ?;")
+        preparedStatement.setTimestamp(1, Timestamp(startTime.timeInMillis))
+        val resultSet = preparedStatement.executeQuery()
+        var id: Int? = null
+
+        if (resultSet.next()) {
+            id = resultSet.getInt("pk_guerre_id")
+        }
+
+        connector.disconnect()
+
+        return id
+    }
+
+    fun updateWarStartTime(warId: Int, startTime: String) {
+        val preparedStatement = connector.getPreparedStatement("update guerre set datedebut = ?::timestamp where pk_guerre_id = ?;")
+        preparedStatement.setString(1, startTime)
+        preparedStatement.setInt(2, warId)
+        preparedStatement.executeUpdate()
+
+        connector.disconnect()
+    }
+
+    fun updateWar(warId: Int, startTime: Calendar, nbEtoileClan: Int, nbEtoileOppose: Int) {
+        val preparedStatement = connector.getPreparedStatement("update guerre set datedebut = ?, nb_etoile_clan = ?, nb_etoile_clan_adverse = ? where pk_guerre_id = ?;")
+        preparedStatement.setTimestamp(1, Timestamp(startTime.timeInMillis))
+        preparedStatement.setInt(2, nbEtoileClan)
+        preparedStatement.setInt(3, nbEtoileOppose)
+        preparedStatement.setInt(4, warId)
+        preparedStatement.executeUpdate()
+
         connector.disconnect()
     }
 }

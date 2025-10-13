@@ -21,11 +21,8 @@ object DiscordUser {
         val targetRoleName = rangToString(rang)
 
         val targetRole = guild.getRolesByName(targetRoleName, true).firstOrNull()
-
-        if (targetRole == null) {
-            warn("Role '$targetRoleName' not found in '${guild.name}'. Create it and try again.")
+            ?: //warn("Role '$targetRoleName' not found in '${guild.name}'. Create it and try again.")
             return
-        }
 
         if(!checkBotPermission(guild, member, targetRole)) return
 
@@ -33,7 +30,7 @@ object DiscordUser {
         val toAdd = getToAddRoles(targetRole, member)
 
         if (toAdd.isEmpty() && toRemove.isEmpty()) {
-            println("No change for ${member.user.asTag}")
+            //println("No change for ${member.user.asTag}")
             return
         }
 
@@ -56,21 +53,21 @@ object DiscordUser {
     private fun checkBotPermission(guild: Guild, member: Member, targetRole: Role): Boolean {
         val self = guild.selfMember
         if (!self.hasPermission(Permission.MANAGE_ROLES)) {
-            return warn("Bot lacks MANAGE_ROLES in '${guild.name}'.")
+            return false // warn("Bot lacks MANAGE_ROLES in '${guild.name}'.")
         }
         val selfTop   = self.roles.maxOfOrNull { it.position } ?: -1
         val targetPos = targetRole.position
         val memberTop = member.roles.maxOfOrNull { it.position } ?: -1
-        if (selfTop <= targetPos) return warn("Bot top role must be ABOVE '${targetRole.name}' (pos=$targetPos, botTop=$selfTop).")
-        if (selfTop <= memberTop) return warn("Bot top role must be ABOVE member’s top role (memberTop=$memberTop, botTop=$selfTop).")
+        if (selfTop <= targetPos) return false // warn("Bot top role must be ABOVE '${targetRole.name}' (pos=$targetPos, botTop=$selfTop).")
+        if (selfTop <= memberTop) return false // warn("Bot top role must be ABOVE member’s top role (memberTop=$memberTop, botTop=$selfTop).")
 
         return true
     }
 
-    private fun warn(msg: String): Boolean {
+    /*private fun warn(msg: String): Boolean {
         System.err.println("[RoleAssign] $msg")
         return false
-    }
+    }*/
 
     private fun changeRoles(guild: Guild, member: Member, toAdd: List<Role>, toRemove: List<Role>) {
         guild.modifyMemberRoles(member, toAdd, toRemove).queue(

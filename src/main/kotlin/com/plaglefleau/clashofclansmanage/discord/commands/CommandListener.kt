@@ -1,5 +1,6 @@
 package com.plaglefleau.clashofclansmanage.discord.commands
 
+import com.plaglefleau.clashofclansmanage.Main
 import com.plaglefleau.clashofclansmanage.discord.commands.execution.AssignRoleCommand
 import com.plaglefleau.clashofclansmanage.discord.commands.execution.LinkAccountCommand
 import com.plaglefleau.clashofclansmanage.discord.commands.execution.PingCommand
@@ -7,6 +8,7 @@ import com.plaglefleau.clashofclansmanage.discord.commands.execution.PlanNextWar
 import com.plaglefleau.clashofclansmanage.discord.commands.execution.ShowNextWarEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
+import kotlin.system.exitProcess
 
 class CommandListener: ListenerAdapter() {
     /**
@@ -24,6 +26,10 @@ class CommandListener: ListenerAdapter() {
             "show_next_war" -> ShowNextWarEvent().execute(event)
             "plan_next_war" -> PlanNextWarCommand().execute(event)
             "assign_role" -> AssignRoleCommand().execute(event)
+            "stop" -> {
+                event.reply("Le bot est en train de s'arrêter").setEphemeral(true).queue()
+                Main.stop()
+            }
             else -> event.reply("Error: Command not found").setEphemeral(true).queue()
         }
     }

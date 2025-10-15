@@ -9,21 +9,26 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.ChunkingFilter
 import net.dv8tion.jda.api.utils.MemberCachePolicy
+import org.slf4j.LoggerFactory
 
 class DiscordBot {
     val jda: JDA;
 
     private constructor(jda: JDA) {
         this.jda = jda
-        this.jda.awaitReady()
         this.jda.presence.activity = Activity.playing("I'm Ready")
     }
 
     class Builder {
+        val logger = LoggerFactory.getLogger(Builder::class.java)
         val jda = JDABuilder.createLight(Credential.DISCORD_TOKEN, GatewayIntent.GUILD_MEMBERS)
             .setMemberCachePolicy(MemberCachePolicy.ALL)
             .setChunkingFilter(ChunkingFilter.ALL)
             .build()
+
+        init {
+            this.jda.awaitReady()
+        }
 
         fun build(): DiscordBot {
             createRoles()
@@ -34,7 +39,7 @@ class DiscordBot {
             if (isDev) {
                 val guild = jda.getGuildById(Credential.TEST_GUILD_ID);
                 if(guild == null) {
-                    println("No guild found for id: ${Credential.TEST_GUILD_ID}")
+                    logger.error("No guild found for id: ${Credential.TEST_GUILD_ID}")
                     return this
                 }
 
@@ -55,7 +60,7 @@ class DiscordBot {
             if (isDev) {
                 val guild = jda.getGuildById(Credential.TEST_GUILD_ID);
                 if(guild == null) {
-                    println("No guild found for id: ${Credential.TEST_GUILD_ID}")
+                    logger.error("No guild found for id: ${Credential.TEST_GUILD_ID}")
                     return this
                 }
 
@@ -93,7 +98,7 @@ class DiscordBot {
                 if(guild.getRolesByName(DiscordUser.LEADER, true).isEmpty())
                     guild.createRole().setName(DiscordUser.LEADER).setColor(0xD4AF37).queue()
 
-                println("${guild.name} : ${guild.members.size} members")
+                logger.info("${guild.name} : ${guild.members.size} members")
             }
         }
     }

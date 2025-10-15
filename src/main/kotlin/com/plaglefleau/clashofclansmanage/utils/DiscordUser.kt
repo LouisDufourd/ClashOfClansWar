@@ -6,8 +6,11 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Role
+import org.slf4j.LoggerFactory
 
 object DiscordUser {
+    private val logger = LoggerFactory.getLogger(DiscordUser::class.java)
+
     const val NOT_MEMBER = "Clan Not Member"
     const val MEMBER = "Clan Member"
     const val ADMIN = "Clan Admin"
@@ -18,11 +21,15 @@ object DiscordUser {
         if (member.user.isBot) return
 
         val rang: Rang = AccountManager().getUserHighestRank(member.id)
+        //logger.info("Assigning role '${rangToString(rang)}' to ${member.user.asTag}")
         val targetRoleName = rangToString(rang)
 
         val targetRole = guild.getRolesByName(targetRoleName, true).firstOrNull()
-            ?: //warn("Role '$targetRoleName' not found in '${guild.name}'. Create it and try again.")
+
+        if (targetRole == null) {
+            //warn("Role '$targetRoleName' not found in '${guild.name}'. Create it and try again.")
             return
+        }
 
         if(!checkBotPermission(guild, member, targetRole)) return
 
@@ -30,7 +37,7 @@ object DiscordUser {
         val toAdd = getToAddRoles(targetRole, member)
 
         if (toAdd.isEmpty() && toRemove.isEmpty()) {
-            //println("No change for ${member.user.asTag}")
+            //logger.info("No change for ${member.user.asTag}")
             return
         }
 
@@ -53,21 +60,21 @@ object DiscordUser {
     private fun checkBotPermission(guild: Guild, member: Member, targetRole: Role): Boolean {
         val self = guild.selfMember
         if (!self.hasPermission(Permission.MANAGE_ROLES)) {
-            return false // warn("Bot lacks MANAGE_ROLES in '${guild.name}'.")
+            return warn("Bot lacks MANAGE_ROLES in '${guild.name}'.")
         }
         val selfTop   = self.roles.maxOfOrNull { it.position } ?: -1
         val targetPos = targetRole.position
         val memberTop = member.roles.maxOfOrNull { it.position } ?: -1
-        if (selfTop <= targetPos) return false // warn("Bot top role must be ABOVE '${targetRole.name}' (pos=$targetPos, botTop=$selfTop).")
-        if (selfTop <= memberTop) return false // warn("Bot top role must be ABOVE member’s top role (memberTop=$memberTop, botTop=$selfTop).")
+        if (selfTop <= targetPos) return warn("Bot top role must be ABOVE '${targetRole.name}' (pos=$targetPos, botTop=$selfTop).")
+        if (selfTop <= memberTop) return warn("Bot top role must be ABOVE member’s top role (memberTop=$memberTop, botTop=$selfTop).")
 
         return true
     }
 
-    /*private fun warn(msg: String): Boolean {
-        System.err.println("[RoleAssign] $msg")
+    private fun warn(msg: String): Boolean {
+        logger.error("[RoleAssign] $msg")
         return false
-    }*/
+    }
 
     private fun changeRoles(guild: Guild, member: Member, toAdd: List<Role>, toRemove: List<Role>) {
         guild.modifyMemberRoles(member, toAdd, toRemove).queue(

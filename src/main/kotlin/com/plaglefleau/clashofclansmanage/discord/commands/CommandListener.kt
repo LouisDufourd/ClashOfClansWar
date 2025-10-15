@@ -5,6 +5,7 @@ import com.plaglefleau.clashofclansmanage.discord.commands.execution.AssignRoleC
 import com.plaglefleau.clashofclansmanage.discord.commands.execution.LinkAccountCommand
 import com.plaglefleau.clashofclansmanage.discord.commands.execution.PingCommand
 import com.plaglefleau.clashofclansmanage.discord.commands.execution.PlanNextWarCommand
+import com.plaglefleau.clashofclansmanage.discord.commands.execution.RuleCommand
 import com.plaglefleau.clashofclansmanage.discord.commands.execution.ShowNextWarEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
@@ -26,6 +27,7 @@ class CommandListener: ListenerAdapter() {
             "show_next_war" -> ShowNextWarEvent().execute(event)
             "plan_next_war" -> PlanNextWarCommand().execute(event)
             "assign_role" -> AssignRoleCommand().execute(event)
+            "rule" -> RuleCommand().execute(event)
             "stop" -> {
                 event.reply("Le bot est en train de s'arrêter").setEphemeral(true).queue()
                 Main.stop()

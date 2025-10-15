@@ -25,23 +25,25 @@ import net.dv8tion.jda.api.utils.ChunkingFilter
 import net.dv8tion.jda.api.utils.MemberCachePolicy
 import net.dv8tion.jda.api.utils.cache.CacheFlag
 import org.jetbrains.annotations.NotNull
+import org.slf4j.LoggerFactory
 import retrofit2.HttpException
 import kotlin.system.exitProcess
 
 class Main {
     companion object {
         private val timer = UpdateData()
+        private val logger = LoggerFactory.getLogger(Main::class.java)
 
         @JvmStatic
         fun main(args: Array<String>) {
             val discordBot = DiscordBot.Builder()
-                .setupCommands(true, createCommands())
+                .setupCommands(isDev = true, commands = getCommands())
                 .setupListeners(ButtonListener(), CommandListener(), ModalListener())
                 .build()
 
             timer.startUpdates(discordBot.jda)
 
-            print("press enter to stop")
+            logger.info("press enter to stop")
             readln()
 
             stop()
@@ -52,35 +54,39 @@ class Main {
             exitProcess(0)
         }
 
-        private fun createCommands(): List<CommandData> {
+        fun createCommand(name:String, description: String, vararg options: OptionData) : CommandData{
+            return Commands.slash(name, description)
+                .addOptions(*options)
+        }
+
+        private fun getCommands(): List<CommandData> {
+            val playerTag = OptionData(
+                OptionType.STRING,
+                "player_tag",
+                "Le tag du joueur (peut être trouver dans le profil)",
+                true
+            )
+
+            val apiToken = OptionData(
+                OptionType.STRING,
+                "api_token",
+                "Votre jeton api (peut être trouver dans les paramètre supplémentaires)"
+            )
+
+            val startTime = OptionData(
+                OptionType.STRING,
+                "start_time",
+                "La date où la recherche de la prochaine guerre commence (jj/MM/aaaa HH:mm:ss)",
+                true
+            )
+
             return listOf(
-                Commands.slash("ping", "Send a ping command"),
-                Commands.slash("link", "Relie un compte discord avec un compte clash of clans")
-                    .addOptions(
-                        OptionData(
-                            OptionType.STRING,
-                            "player_tag",
-                            "Le tag du joueur (peut être trouver dans le profil)",
-                            true
-                        ),
-                        OptionData(
-                            OptionType.STRING,
-                            "api_token",
-                            "Votre jeton api (peut être trouver dans les paramètre supplémentaires)"
-                        )
-                    ),
-                Commands.slash("show_next_war", "Affiche la prochaine guerre à venir"),
-                Commands.slash("plan_next_war", "Planifie la prochaine guerre")
-                    .addOptions(
-                        OptionData(
-                            OptionType.STRING,
-                            "start_time",
-                            "La date où la recherche de la prochaine guerre commence (aaaa-MM-jj hh:mm:ss)",
-                            true
-                        )
-                    ),
-                Commands.slash("assign_role", "Assigne les rôles du clan au comptes discord"),
-                Commands.slash("stop", "Stoppe le bot")
+                createCommand("ping", "Envoie une commande ping"),
+                createCommand("link", "Relie un compte discord avec un compte clash of clans", playerTag, apiToken),
+                createCommand("show_next_war", "Affiche la prochaine guerre à venir"),
+                createCommand("plan_next_war", "Planifie la prochaine guerre", startTime),
+                createCommand("assign_role", "Assigne les rôles du clan au comptes discord"),
+                createCommand("rule", "Affiche les règles du clans"),
             )
         }
     }

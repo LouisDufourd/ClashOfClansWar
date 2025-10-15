@@ -251,7 +251,7 @@ class WarManager {
      */
     fun createNewWar(startTime: Calendar) {
         val statement = connector.getPreparedStatement("select createWarInscription(?)")
-        statement.setTimestamp(1, java.sql.Timestamp(startTime.timeInMillis))
+        statement.setTimestamp(1, Timestamp(startTime.timeInMillis))
         statement.execute()
         connector.disconnect()
     }
@@ -313,23 +313,41 @@ class WarManager {
         return id
     }
 
-    fun updateWarStartTime(warId: Int, startTime: String) {
-        val preparedStatement = connector.getPreparedStatement("update guerre set datedebut = ?::timestamp where pk_guerre_id = ?;")
+    fun updateWarTimes(warId: Int, startTime: String, endTime: String) {
+        val preparedStatement = connector.getPreparedStatement("update guerre set datedebut = ?::timestamp, datefin = ?::timestamp where pk_guerre_id = ?;")
         preparedStatement.setString(1, startTime)
-        preparedStatement.setInt(2, warId)
+        preparedStatement.setString(2, endTime)
+        preparedStatement.setInt(3, warId)
         preparedStatement.executeUpdate()
 
         connector.disconnect()
     }
 
-    fun updateWar(warId: Int, startTime: Calendar, nbEtoileClan: Int, nbEtoileOppose: Int) {
-        val preparedStatement = connector.getPreparedStatement("update guerre set datedebut = ?, nb_etoile_clan = ?, nb_etoile_clan_adverse = ? where pk_guerre_id = ?;")
+    fun updateWar(warId: Int, startTime: Calendar, endTime:Calendar, nbEtoileClan: Int, nbEtoileOppose: Int) {
+        val preparedStatement = connector.getPreparedStatement("""
+            update guerre set 
+                datedebut = ?, 
+                datefin = ?, 
+                nb_etoile_clan = ?, 
+                nb_etoile_clan_adverse = ? 
+            where pk_guerre_id = ?;
+            """.trimIndent())
         preparedStatement.setTimestamp(1, Timestamp(startTime.timeInMillis))
-        preparedStatement.setInt(2, nbEtoileClan)
-        preparedStatement.setInt(3, nbEtoileOppose)
-        preparedStatement.setInt(4, warId)
+        preparedStatement.setTimestamp(2, Timestamp(endTime.timeInMillis))
+        preparedStatement.setInt(3, nbEtoileClan)
+        preparedStatement.setInt(4, nbEtoileOppose)
+        preparedStatement.setInt(5, warId)
         preparedStatement.executeUpdate()
 
         connector.disconnect()
+    }
+
+    fun getNextVal() : Int {
+        val statement = connector.getStatement()
+        val result = statement.executeQuery("select nextval('guerre_pk_guerre_id_seq') as next;")
+        result.next()
+        val warId = result.getInt("next")
+        connector.disconnect()
+        return warId
     }
 }

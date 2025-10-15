@@ -14,10 +14,19 @@ import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import org.slf4j.LoggerFactory
 import java.sql.SQLException
+import kotlin.math.log
 
 class LinkAccountCommand: DiscordCommand {
+    private val logger = LoggerFactory.getLogger(LinkAccountCommand::class.java)
+
     override fun execute(event: SlashCommandInteractionEvent) {
+        if(event.options.size < 2) {
+            event.reply("Veuillez fournir à la fois le tag du joueur et le jeton API").setEphemeral(true).queue()
+            return
+        }
+
         val playerTag = event.options[0].asString
         val apiToken = event.options[1].asString
 
@@ -29,7 +38,7 @@ class LinkAccountCommand: DiscordCommand {
             val result = verifyToken(playerTag, apiToken)
 
             if (!result) {
-                event.hook.sendMessage("Impossible de lié le compte $playerTag (Mauvais jeton)")
+                event.hook.sendMessage("Impossible de lié le compte $playerTag (mauvais jeton ou mauvais tag)")
                     .setEphemeral(true)
                     .queue()
                 return@launch
@@ -43,11 +52,16 @@ class LinkAccountCommand: DiscordCommand {
 
     private suspend fun verifyToken(playerTag: String, apiToken: String): Boolean {
         val verifyTokenResponse = ClashOfClansApiAdapter.apiClient.verifyToken(playerTag, VerifyTokenRequest(apiToken))
-        return verifyTokenResponse.status.equals("ok", ignoreCase = true)
+
+        if (verifyTokenResponse.isSuccessful.not()) {
+            return false
+        }
+
+        return verifyTokenResponse.body()?.status.equals("ok", ignoreCase = true)
     }
 
     private suspend fun updateDatabase(playerTag: String, apiToken: String, event: SlashCommandInteractionEvent) {
-        ClashUser.updateClashData()
+        ClashUser.updateClashData(event to true)
 
         try {
             AccountManager().linkAccount(event.user.id, playerTag)

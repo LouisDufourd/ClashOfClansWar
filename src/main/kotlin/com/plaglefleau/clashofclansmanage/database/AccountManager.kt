@@ -119,7 +119,7 @@ class AccountManager {
     fun getUserHighestRank(discordId: String) : Rang {
         val preparedStatement = connector.getPreparedStatement(
             """
-                select distinct  rang from compte_clash 
+                select distinct rang from compte_clash 
                 where fk_discord_account = ?;
             """.trimIndent()
         )

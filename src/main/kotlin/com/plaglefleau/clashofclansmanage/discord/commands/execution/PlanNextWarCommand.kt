@@ -47,7 +47,7 @@ class PlanNextWarCommand: DiscordCommand {
             "Erreur: Veuillez fournir une date au format 'aaaa-MM-jj hh:mm:ss'"
         )
 
-        val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+        val format = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
 
         val startTime = Calendar.getInstance()
 

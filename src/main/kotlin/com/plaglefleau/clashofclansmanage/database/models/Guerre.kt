@@ -6,6 +6,6 @@ data class Guerre(
     val idGuerre: Int,
     val nombreEtoileClan: Int = 0,
     val nombreEtoileOppose: Int = 0,
-    val dateDebut: Calendar,
-    val statDeGuerre: List<StatDeGuerre>,
+    val dateDebut: Calendar = Calendar.getInstance(),
+    val statDeGuerre: List<StatDeGuerre> = emptyList(),
 )

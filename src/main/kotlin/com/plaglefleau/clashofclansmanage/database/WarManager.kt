@@ -183,7 +183,7 @@ class WarManager {
      */
     fun getPlayerWarStat(warId: Int, playerTag: String): StatDeGuerre {
         val statement =
-            connector.getPreparedStatement("select * from stat_de_guerre where pk_iguerre_id = ? and pk_iaccount_id = ?")
+            connector.getPreparedStatement("select pk_iaccount_id, nb_attaques from stat_de_guerre where pk_iguerre_id = ? and pk_iaccount_id = ?")
         statement.setInt(1, warId)
         statement.setString(2, playerTag)
         val resultSet = statement.executeQuery()
@@ -209,10 +209,10 @@ class WarManager {
     fun getPlayerWithLessThanTwoAttack(warId: Int): List<CompteClash> {
         val statement = connector.getPreparedStatement(
             """
-                select c.* from stat_de_guerre s
+                select pk_account_id, nom, rang, fk_discord_account from stat_de_guerre s
                 join compte_clash c on s.pk_saccount_id = c.pk_account_id 
                 join inscription_guerre i on i.pk_iguerre_id = s.pk_sguerre_id and i.pk_iaccount_id = s.pk_saccount_id
-                where pk_sguerre_id = 6 and s.nb_attaque < 2 and i.participation;
+                where pk_sguerre_id = ? and s.nb_attaque < 2 and i.participation;
             """.trimIndent()
         )
         statement.setInt(1, warId)
@@ -347,6 +347,21 @@ class WarManager {
         val result = statement.executeQuery("select nextval('guerre_pk_guerre_id_seq') as next;")
         result.next()
         val warId = result.getInt("next")
+        connector.disconnect()
+        return warId
+    }
+
+    fun getPreviousWarId() : Int {
+        val statement = connector.getStatement()
+        val result = statement
+            .executeQuery(
+                """
+                    select pk_guerre_id from guerre 
+                    where datedebut < CURRENT_TIMESTAMP 
+                    order by pk_guerre_id desc limit 1;
+                """.trimIndent())
+        result.next()
+        val warId = result.getInt("pk_guerre_id")
         connector.disconnect()
         return warId
     }

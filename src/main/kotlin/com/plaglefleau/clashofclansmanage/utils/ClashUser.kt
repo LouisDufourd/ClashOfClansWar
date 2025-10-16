@@ -3,7 +3,9 @@ package com.plaglefleau.clashofclansmanage.utils
 import com.google.gson.Gson
 import com.plaglefleau.clashofclansmanage.Credential
 import com.plaglefleau.clashofclansmanage.api.ClashOfClansApiAdapter
+import com.plaglefleau.clashofclansmanage.api.model.ClanWar
 import com.plaglefleau.clashofclansmanage.api.model.ClientError
+import com.plaglefleau.clashofclansmanage.api.model.WarClan
 import com.plaglefleau.clashofclansmanage.database.AccountManager
 import com.plaglefleau.clashofclansmanage.database.WarManager
 import com.plaglefleau.clashofclansmanage.database.models.Rang
@@ -87,8 +89,13 @@ object ClashUser {
         }
 
         warManager.updateWar(warId, startTime, endTime, war.clan.stars, war.opponent.stars)
+    }
 
-        if(war.clan.members.isEmpty()) return
+    private fun updateWarParticipant(war: ClanWar, warId: Int, warManager: WarManager) {
+        if(war.clan.members.isEmpty()) {
+            logger.info("No clan members found for warId: ${warId}")
+            return
+        }
 
         war.clan.members.forEach { member ->
             warManager.updateWarStat(warId, member.tag, member.attacks?.size ?: 0)

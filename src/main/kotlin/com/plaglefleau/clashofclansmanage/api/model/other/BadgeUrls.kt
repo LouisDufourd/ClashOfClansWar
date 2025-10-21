@@ -1,4 +1,4 @@
-package com.plaglefleau.clashofclansmanage.api.model
+package com.plaglefleau.clashofclansmanage.api.model.other
 
 data class BadgeUrls(
     val large: String,

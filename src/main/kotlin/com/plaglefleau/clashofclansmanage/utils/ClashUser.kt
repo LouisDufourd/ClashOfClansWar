@@ -3,14 +3,18 @@ package com.plaglefleau.clashofclansmanage.utils
 import com.google.gson.Gson
 import com.plaglefleau.clashofclansmanage.Credential
 import com.plaglefleau.clashofclansmanage.api.ClashOfClansApiAdapter
-import com.plaglefleau.clashofclansmanage.api.model.ClanWar
-import com.plaglefleau.clashofclansmanage.api.model.ClientError
-import com.plaglefleau.clashofclansmanage.api.model.WarClan
+import com.plaglefleau.clashofclansmanage.api.model.clan.Clan
+import com.plaglefleau.clashofclansmanage.api.model.clan.ClanMember
+import com.plaglefleau.clashofclansmanage.api.model.war.ClanWar
+import com.plaglefleau.clashofclansmanage.api.model.error.ClientError
 import com.plaglefleau.clashofclansmanage.database.AccountManager
 import com.plaglefleau.clashofclansmanage.database.WarManager
 import com.plaglefleau.clashofclansmanage.database.models.Rang
+import io.github.oshai.kotlinlogging.KotlinLogging
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Icon
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
-import org.slf4j.LoggerFactory
+import java.net.URI
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -24,34 +28,48 @@ import java.util.GregorianCalendar
 
 object ClashUser {
 
-    private val logger = LoggerFactory.getLogger(ClashUser::class.java)
+    private val logger = KotlinLogging.logger { }
 
     private val FLEXIBLE_OFFSET: DateTimeFormatter = DateTimeFormatterBuilder()
         .appendPattern("yyyyMMdd'T'HHmmss")
         .optionalStart()
         .appendLiteral('.')
-        .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 9, false) // .SSS ... .nanosec
+        .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 9, false)
         .optionalEnd()
-        // Try a region ID like [Europe/Paris] OR an offset like Z / +02:00 / +0200 / +02
-        .optionalStart().appendZoneOrOffsetId().optionalEnd() // [Europe/Paris] or Z or +HH:MM
-        .optionalStart().appendOffset("+HH:MM", "Z").optionalEnd()     // +02:00    or Z
-        .optionalStart().appendOffset("+HHMM",  "Z").optionalEnd()     // +0200     or Z
-        .optionalStart().appendOffset("+HH",    "Z").optionalEnd()     // +02       or Z
+        .optionalStart().appendZoneOrOffsetId().optionalEnd()
+        .optionalStart().appendOffset("+HH:MM", "Z").optionalEnd()
+        .optionalStart().appendOffset("+HHMM", "Z").optionalEnd()
+        .optionalStart().appendOffset("+HH", "Z").optionalEnd()
         .toFormatter()
 
-    suspend fun updateClashData(event: Pair<IReplyCallback, Boolean>? = null) {
-        val warManager = WarManager()
-        val apiClient = ClashOfClansApiAdapter.apiClient
-        val response = apiClient.getClanMembers(Credential.CLAN_TAG)
+    suspend fun updateClashData(guild: Guild, event: Pair<IReplyCallback, Boolean>? = null) {
+        logger.debug { "Starting updating discord server" }
+        updateDiscordServer(guild, event)
+        updateClanMembers(event)
+        updateClanWars(event)
+    }
 
-        if(!response.isSuccessful) {
-            val error = Gson().fromJson(response.errorBody()?.string(), ClientError::class.java)
-            if(error == null) {
-                sendError(event, "Erreur: ${response.message()}")
-            }
+    suspend fun updateDiscordServer(guild: Guild, event: Pair<IReplyCallback, Boolean>? = null) {
+        logger.debug { "Starting updating discord server" }
+        val clan = getClan(event)
+
+        if (clan == null) {
+            logger.error { "Clan not found" }
+            sendError(event, "Error: Clan not found")
+            return
         }
 
-        val clanMembers = response.body()!!.items
+        val icon = Icon.from(URI.create(clan.badgeUrls.large).toURL().openStream())
+
+        val manager = guild.manager
+
+        manager.setIcon(icon).queue()
+        manager.setName(clan.name).queue()
+    }
+
+    suspend fun updateClanMembers(event: Pair<IReplyCallback, Boolean>? = null) {
+        logger.debug { "Starting updating clan members" }
+        val clanMembers = getClanMembers(event)
 
         clanMembers.forEach { member ->
             AccountManager().updateClashAccount(member.tag, member.name, stringToRank(member.role))
@@ -63,43 +81,88 @@ object ClashUser {
         clashUsers.filterNot { it.idCompte in playerTags.toSet() }.forEach {
             AccountManager().updateClashAccount(it.idCompte, it.pseudo, Rang.NOT_MEMBER)
         }
+    }
 
-        val warResponse = apiClient.getClanCurrentWar(Credential.CLAN_TAG)
-
-        if(!warResponse.isSuccessful) {
-            val error = Gson().fromJson(warResponse.errorBody()?.string(), ClientError::class.java)
-            error?.let {
-                sendError(event, "Error: ${it.message}")
-            }
-        }
-
-        val war = warResponse.body()!!
+    suspend fun updateClanWars(event: Pair<IReplyCallback, Boolean>? = null) {
+        logger.debug { "Starting updating clan members" }
+        val warManager = WarManager()
+        val war = getClanCurrentWar(event) ?: return
 
         val startTime = toCalendar(war.preparationStartTime)
         val endTime = toCalendar(war.endTime)
 
         var warId = warManager.getWarIdByDate(startTime)
+        var consequence = true
 
-        if(warId == null) {
+        if (warId == null) {
             warId = warManager.getNextWarId(startTime)
+            consequence = false
         }
 
-        if(warId == -1) {
+        if (warId == -1) {
             warId = warManager.getNextVal()
+            consequence = false
         }
 
-        warManager.updateWar(warId, startTime, endTime, war.clan.stars, war.opponent.stars)
+        if (consequence) {
+            consequence = warManager.getConsequence(warId)
+        }
+
+        warManager.updateWar(warId, startTime, endTime, war.clan.stars, war.opponent.stars, consequence)
+        updateWarParticipant(war, warId, warManager)
     }
 
     private fun updateWarParticipant(war: ClanWar, warId: Int, warManager: WarManager) {
-        if(war.clan.members.isEmpty()) {
-            logger.info("No clan members found for warId: ${warId}")
+        if (war.clan.members.isEmpty()) {
+            logger.info { "No clan members found for warId: ${warId}" }
             return
         }
 
         war.clan.members.forEach { member ->
             warManager.updateWarStat(warId, member.tag, member.attacks?.size ?: 0)
         }
+    }
+
+    private suspend fun getClanMembers(event: Pair<IReplyCallback, Boolean>? = null): List<ClanMember> {
+        val apiClient = ClashOfClansApiAdapter.apiClient
+        val response = apiClient.getClanMembers(Credential.CLAN_TAG)
+
+        if (!response.isSuccessful) {
+            val error = Gson().fromJson(response.errorBody()?.string(), ClientError::class.java)
+            if (error == null) {
+                sendError(event, "Erreur: ${response.message()}")
+            }
+        }
+
+        return response.body()?.items ?: emptyList()
+    }
+
+    suspend fun getClanCurrentWar(event: Pair<IReplyCallback, Boolean>? = null): ClanWar? {
+        val apiClient = ClashOfClansApiAdapter.apiClient
+        val warResponse = apiClient.getClanCurrentWar(Credential.CLAN_TAG)
+
+        if (!warResponse.isSuccessful) {
+            val error = Gson().fromJson(warResponse.errorBody()?.string(), ClientError::class.java)
+            error?.let {
+                sendError(event, "Error: ${it.message}")
+            }
+        }
+
+        return warResponse.body()
+    }
+
+    private suspend fun getClan(event: Pair<IReplyCallback, Boolean>? = null): Clan? {
+        val apiClient = ClashOfClansApiAdapter.apiClient
+        val response = apiClient.getClan(Credential.CLAN_TAG)
+
+        if (!response.isSuccessful) {
+            val error = Gson().fromJson(response.errorBody()?.string(), ClientError::class.java)
+            if (error == null) {
+                sendError(event, "Erreur: ${response.message()}")
+            }
+        }
+
+        return response.body()
     }
 
     private fun stringToRank(role: String): Rang {
@@ -133,9 +196,9 @@ object ClashUser {
     }
 
     private fun sendError(event: Pair<IReplyCallback, Boolean>?, message: String) {
-        logger.error("Error: ${message}")
+        logger.error { "Error: $message" }
         event?.let {
-            if(it.second)
+            if (it.second)
                 it.first.hook.sendMessage(message).setEphemeral(true).queue()
             else
                 it.first.reply(message).setEphemeral(true).queue()

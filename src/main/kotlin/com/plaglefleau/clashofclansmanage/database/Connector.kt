@@ -1,6 +1,8 @@
 package com.plaglefleau.clashofclansmanage.database
 
 import com.plaglefleau.clashofclansmanage.Credential
+import io.github.oshai.kotlinlogging.KotlinLogging
+import org.slf4j.LoggerFactory
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.PreparedStatement
@@ -12,6 +14,7 @@ class Connector {
     private var connection: Connection? = null
     private val lock = Any()
 
+    private val logger = KotlinLogging.logger {}
     fun connect() {
         synchronized(lock) {
             // Close existing connection if present
@@ -22,7 +25,11 @@ class Connector {
             val props = Properties()
             props.setProperty("user", Credential.DATABASE_USERNAME)
             props.setProperty("password", Credential.DATABASE_PASSWORD)
-            connection = DriverManager.getConnection(Credential.DATABASE_URL, props)
+            try {
+                connection = DriverManager.getConnection(Credential.DATABASE_URL, props)
+            } catch (e: Exception) {
+                logger.error { "Error connecting to database: ${e.message}" }
+            }
         }
     }
 

@@ -14,20 +14,8 @@ import net.dv8tion.jda.api.modals.Modal
 
 class JoinWarButton: DiscordExecuteButton {
     override fun execute(event: ButtonInteractionEvent) {
-        val member = event.member
-        val guild = event.guild
-
-        if (member == null || guild == null)
-            return DiscordEventReply.replyEphemeralMessage(event, "Erreur: Impossible de trouver le membre ou le serveur.")
-
-        if(DiscordPermission.hasPermission(member, DiscordPermission.getRolesByNames(guild, DiscordUser.NOT_MEMBER)))
-            return DiscordEventReply.replyEphemeralMessage(
-                event,
-                """
-                    Erreur: Vous n'êtes pas un membre du clan. 
-                    Veuillez lié votre compte clash à votre compte discord en utilisant la commande /link <tagJoueur> <jetonApi>.
-                """.trimIndent()
-            )
+        val pair = DiscordUser.verifyUser(event, event) ?: return
+        val member = pair.first
 
         val playerTags = AccountManager().getPlayerTags(member.id).filter { tag ->
             val manager = WarManager()

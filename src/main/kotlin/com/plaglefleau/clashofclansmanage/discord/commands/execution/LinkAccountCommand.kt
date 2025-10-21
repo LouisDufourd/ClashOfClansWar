@@ -1,22 +1,16 @@
 package com.plaglefleau.clashofclansmanage.discord.commands.execution
 
 import com.plaglefleau.clashofclansmanage.api.ClashOfClansApiAdapter
-import com.plaglefleau.clashofclansmanage.api.model.VerifyTokenRequest
+import com.plaglefleau.clashofclansmanage.api.model.other.VerifyTokenRequest
 import com.plaglefleau.clashofclansmanage.database.AccountManager
-import com.plaglefleau.clashofclansmanage.database.WarManager
-import com.plaglefleau.clashofclansmanage.database.models.Rang
 import com.plaglefleau.clashofclansmanage.utils.ClashUser
 import com.plaglefleau.clashofclansmanage.utils.DiscordUser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import net.dv8tion.jda.api.entities.Guild
-import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
-import kotlin.math.log
 
 class LinkAccountCommand: DiscordCommand {
     private val logger = LoggerFactory.getLogger(LinkAccountCommand::class.java)
@@ -61,7 +55,7 @@ class LinkAccountCommand: DiscordCommand {
     }
 
     private suspend fun updateDatabase(playerTag: String, apiToken: String, event: SlashCommandInteractionEvent) {
-        ClashUser.updateClashData(event to true)
+        ClashUser.updateClanMembers(event to true)
 
         try {
             AccountManager().linkAccount(event.user.id, playerTag)

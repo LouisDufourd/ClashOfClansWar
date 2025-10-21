@@ -2,14 +2,19 @@ package com.plaglefleau.clashofclansmanage.utils
 
 import com.plaglefleau.clashofclansmanage.database.AccountManager
 import com.plaglefleau.clashofclansmanage.database.models.Rang
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Role
+import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
+import net.dv8tion.jda.api.interactions.Interaction
+import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
+import org.postgresql.translation.messages_es
 import org.slf4j.LoggerFactory
 
 object DiscordUser {
-    private val logger = LoggerFactory.getLogger(DiscordUser::class.java)
+    private val logger = KotlinLogging.logger {}
 
     const val NOT_MEMBER = "Clan Not Member"
     const val MEMBER = "Clan Member"
@@ -72,8 +77,31 @@ object DiscordUser {
     }
 
     private fun warn(msg: String): Boolean {
-        logger.error("[RoleAssign] $msg")
+        logger.warn { "[RoleAssign] $msg" }
         return false
+    }
+
+    fun verifyUser(interaction: Interaction, callback: IReplyCallback): Pair<Member, Guild>? {
+        val member = interaction.member
+        val guild = interaction.guild
+
+        if (member == null || guild == null) {
+            DiscordEventReply.replyEphemeralMessage(callback, "Erreur: Impossible de trouver le membre ou le serveur.")
+            return null
+        }
+
+        if(DiscordPermission.hasPermission(member, DiscordPermission.getRolesByNames(guild, DiscordUser.NOT_MEMBER))) {
+            DiscordEventReply.replyEphemeralMessage(
+                callback,
+                """
+                    Erreur: Vous n'êtes pas un membre du clan. 
+                    Veuillez lié votre compte clash à votre compte discord en utilisant la commande /link <tagJoueur> <jetonApi>.
+                """.trimIndent()
+            )
+            return null
+        }
+
+        return member to guild
     }
 
     private fun changeRoles(guild: Guild, member: Member, toAdd: List<Role>, toRemove: List<Role>) {

@@ -1,4 +1,6 @@
-package com.plaglefleau.clashofclansmanage.api.model
+package com.plaglefleau.clashofclansmanage.api.model.war
+
+import com.plaglefleau.clashofclansmanage.api.model.other.BadgeUrls
 
 data class WarClan(
     val attacks: Int,

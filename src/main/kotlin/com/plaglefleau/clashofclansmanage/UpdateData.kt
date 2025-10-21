@@ -4,6 +4,7 @@ import com.plaglefleau.clashofclansmanage.api.ClashOfClansApiAdapter
 import com.plaglefleau.clashofclansmanage.database.AccountManager
 import com.plaglefleau.clashofclansmanage.utils.ClashUser
 import com.plaglefleau.clashofclansmanage.utils.DiscordUser
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -16,11 +17,20 @@ class UpdateData {
     val scope = CoroutineScope(Dispatchers.IO)
     var job: Job? = null
 
+    private val logger = KotlinLogging.logger {  }
+
     fun startUpdates(jda: JDA) {
         stopUpdates()
         job = scope.launch {
             while (true) {
-                ClashUser.updateClashData()
+                val guild = jda.getGuildById(Credential.TEST_GUILD_ID)
+
+                if(guild == null) logger.warn { "No guild found for id: ${Credential.TEST_GUILD_ID}" }
+                else ClashUser.updateDiscordServer(guild)
+
+                ClashUser.updateClanMembers()
+                ClashUser.updateClanWars()
+
                 jda.guilds.forEach { guild ->
                     guild.members.forEach { member ->
                         DiscordUser.assignRole(guild, member)

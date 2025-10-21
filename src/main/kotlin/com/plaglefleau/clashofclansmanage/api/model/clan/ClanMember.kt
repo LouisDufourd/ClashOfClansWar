@@ -1,4 +1,9 @@
-package com.plaglefleau.clashofclansmanage.api.model
+package com.plaglefleau.clashofclansmanage.api.model.clan
+
+import com.plaglefleau.clashofclansmanage.api.model.league.BuilderBaseLeague
+import com.plaglefleau.clashofclansmanage.api.model.league.League
+import com.plaglefleau.clashofclansmanage.api.model.league.LeagueTier
+import com.plaglefleau.clashofclansmanage.api.model.other.PlayerHouse
 
 data class ClanMember(
     val builderBaseLeague: BuilderBaseLeague,
@@ -8,6 +13,7 @@ data class ClanMember(
     val donationsReceived: Int,
     val expLevel: Int,
     val league: League,
+    val leagueTier: LeagueTier,
     val name: String,
     val playerHouse: PlayerHouse,
     val previousClanRank: Int,

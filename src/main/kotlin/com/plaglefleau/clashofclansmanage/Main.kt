@@ -3,31 +3,54 @@ package com.plaglefleau.clashofclansmanage
 import com.plaglefleau.clashofclansmanage.discord.buttons.ButtonListener
 import com.plaglefleau.clashofclansmanage.discord.commands.CommandListener
 import com.plaglefleau.clashofclansmanage.discord.modal.ModalListener
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.interactions.commands.OptionType
 import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import net.dv8tion.jda.api.interactions.commands.build.OptionData
 import org.slf4j.LoggerFactory
+import java.util.concurrent.CountDownLatch
 import kotlin.system.exitProcess
 
 class Main {
     companion object {
+        const val DEV_MODE = true
         private val timer = UpdateData()
-        private val logger = LoggerFactory.getLogger(Main::class.java)
+        private val logger = KotlinLogging.logger {  }
 
         @JvmStatic
         fun main(args: Array<String>) {
+            println("println works?")
+            logger.info { "kotlin-logging works?" }
+            println(">>> SLF4J impl: " + LoggerFactory::class.java.protectionDomain.codeSource.location)
+            LoggerFactory.getLogger("probe").info(">>> slf4j info works?")
             val discordBot = DiscordBot.Builder()
-                .setupCommands(isDev = true, commands = getCommands())
+                .setupCommands(isDev = DEV_MODE, commands = getCommands())
                 .setupListeners(ButtonListener(), CommandListener(), ModalListener())
                 .build()
 
             timer.startUpdates(discordBot.jda)
 
-            logger.info("press enter to stop")
-            readln()
+            val latch = CountDownLatch(1)
+            Runtime.getRuntime().addShutdownHook(Thread {
+                logger.info { "Shutting down..." }
+                stop()
+                latch.countDown()
+            })
 
-            stop()
+            if (System.console() != null) {
+                logger.info { "Press ENTER to stop" }
+                runCatching { readln() }.onFailure {
+                    logger.warn(it) { "Console read failed; waiting for SIGINT instead." }
+                    logger.info { "Press Ctrl+C to stop" }
+                    latch.await()
+                    return
+                }
+                stop()
+            } else {
+                logger.info { "No console detected; press Ctrl+C to stop" }
+                latch.await()
+            }
         }
 
         fun stop() {
@@ -61,6 +84,20 @@ class Main {
                 true
             )
 
+            val optionalWarId = OptionData(
+                OptionType.INTEGER,
+                "war_id",
+                "L'identifiant de la guerre",
+                false
+            )
+
+            val requiredWarId = OptionData(
+                OptionType.INTEGER,
+                "war_id",
+                "L'identifiant de la guerre",
+                true
+            )
+
             return listOf(
                 createCommand("ping", "Envoie une commande ping"),
                 createCommand("link", "Relie un compte discord avec un compte clash of clans", playerTag, apiToken),
@@ -68,7 +105,8 @@ class Main {
                 createCommand("plan_next_war", "Planifie la prochaine guerre", startTime),
                 createCommand("assign_role", "Assigne les rôles du clan au comptes discord"),
                 createCommand("rule", "Affiche les règles du clans"),
-                createCommand("punishment", "Affiche les punitions et récompense du clans à partir de la guerre en cours / précédente")
+                createCommand("consequence", "Affiche les conséquence et récompense du clans à partir de la guerre en cours / précédente", optionalWarId),
+                createCommand("confirm-consequence", "Confirme que les conséquence ont été faites", requiredWarId),
             )
         }
     }

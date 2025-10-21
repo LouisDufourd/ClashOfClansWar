@@ -1,6 +1,5 @@
 package com.plaglefleau.clashofclansmanage.database
 
-import com.google.gson.Gson
 import com.plaglefleau.clashofclansmanage.database.models.CompteClash
 import com.plaglefleau.clashofclansmanage.database.models.Rang
 
@@ -15,11 +14,11 @@ class AccountManager {
      * @throws Exception if no account is found for the provided playerTag.
      */
     fun getClashAccount(playerTag: String) : CompteClash {
-        val preparedStatement = connector.getPreparedStatement("SELECT pk_account_id, nom FROM compte_clash WHERE pk_account_id = ?")
+        val preparedStatement = connector.getPreparedStatement("SELECT pk_account_id, nom, rang FROM compte_clash WHERE pk_account_id = ?")
         preparedStatement.setString(1, playerTag)
         val resultSet = preparedStatement.executeQuery()
         if(resultSet.next()) {
-            val compteClash = CompteClash(resultSet.getString("pk_account_id"), resultSet.getString("nom"))
+            val compteClash = CompteClash(resultSet.getString("pk_account_id"), resultSet.getString("nom"), Rang.valueOf(resultSet.getString("rang")))
             connector.disconnect()
             return compteClash
         }

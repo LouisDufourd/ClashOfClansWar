@@ -21,7 +21,8 @@ class CommandListener: ListenerAdapter() {
             "plan_next_war" -> PlanNextWarCommand().execute(event)
             "assign_role" -> AssignRoleCommand().execute(event)
             "rule" -> RuleCommand().execute(event)
-            "punishment" -> PunishmentCommand().execute(event)
+            "consequence" -> PunishmentCommand().execute(event)
+            "confirm-consequence" -> ConfirmPunishment().execute(event)
             else -> event.reply("Error: Command not found").setEphemeral(true).queue()
         }
     }

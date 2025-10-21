@@ -132,14 +132,18 @@ class WarManager {
         statement.setInt(1, warId)
         val resultSet = statement.executeQuery()
         if (resultSet.next()) {
-            val start = Calendar.getInstance();
-            start.timeInMillis = resultSet.getTimestamp("datedebut").time;
+            val start = Calendar.getInstance()
+            val end = Calendar.getInstance()
+            start.timeInMillis = resultSet.getTimestamp("datedebut").time
+            end.timeInMillis = resultSet.getTimestamp("datefin").time
             val guerre = Guerre(
                 idGuerre = resultSet.getInt("pk_guerre_id"),
                 nombreEtoileClan = resultSet.getInt("nb_etoile_clan"),
                 nombreEtoileOppose = resultSet.getInt("nb_etoile_clan_adverse"),
                 dateDebut = start,
-                statDeGuerre = getWarStat(warId)
+                dateFin = end,
+                statDeGuerre = getWarStat(warId),
+                consequence = resultSet.getBoolean("consequence")
             )
             connector.disconnect()
             return guerre
@@ -323,20 +327,22 @@ class WarManager {
         connector.disconnect()
     }
 
-    fun updateWar(warId: Int, startTime: Calendar, endTime:Calendar, nbEtoileClan: Int, nbEtoileOppose: Int) {
+    fun updateWar(warId: Int, startTime: Calendar, endTime:Calendar, nbEtoileClan: Int, nbEtoileOppose: Int, consequence: Boolean) {
         val preparedStatement = connector.getPreparedStatement("""
             update guerre set 
                 datedebut = ?, 
                 datefin = ?, 
                 nb_etoile_clan = ?, 
-                nb_etoile_clan_adverse = ? 
+                nb_etoile_clan_adverse = ?,
+                consequence = ?
             where pk_guerre_id = ?;
             """.trimIndent())
         preparedStatement.setTimestamp(1, Timestamp(startTime.timeInMillis))
         preparedStatement.setTimestamp(2, Timestamp(endTime.timeInMillis))
         preparedStatement.setInt(3, nbEtoileClan)
         preparedStatement.setInt(4, nbEtoileOppose)
-        preparedStatement.setInt(5, warId)
+        preparedStatement.setBoolean(5, consequence)
+        preparedStatement.setInt(6, warId)
         preparedStatement.executeUpdate()
 
         connector.disconnect()
@@ -364,5 +370,17 @@ class WarManager {
         val warId = result.getInt("pk_guerre_id")
         connector.disconnect()
         return warId
+    }
+
+    fun getConsequence(warId: Int): Boolean {
+        val statement = connector.getPreparedStatement("select consequence from guerre where pk_guerre_id = ?;")
+        statement.setInt(1, warId)
+        val resultSet = statement.executeQuery()
+        var consequence = false
+        if (resultSet.next()) {
+            consequence = resultSet.getBoolean("consequence")
+        }
+        connector.disconnect()
+        return consequence
     }
 }

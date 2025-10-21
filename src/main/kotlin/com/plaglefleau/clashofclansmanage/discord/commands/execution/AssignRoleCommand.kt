@@ -36,7 +36,7 @@ class AssignRoleCommand : DiscordCommand {
         }
 
         CoroutineScope(Dispatchers.IO).launch {
-            ClashUser.updateClashData()
+            ClashUser.updateClanMembers()
             guild.members.forEach { DiscordUser.assignRole(guild, it) }
             DiscordEventReply.hookEphemeralMessage(event, "All members have been assigned the role")
         }

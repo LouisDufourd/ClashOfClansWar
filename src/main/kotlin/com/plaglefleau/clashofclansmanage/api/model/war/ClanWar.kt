@@ -1,4 +1,4 @@
-package com.plaglefleau.clashofclansmanage.api.model
+package com.plaglefleau.clashofclansmanage.api.model.war
 
 data class ClanWar(
     val attacksPerMember: Int,

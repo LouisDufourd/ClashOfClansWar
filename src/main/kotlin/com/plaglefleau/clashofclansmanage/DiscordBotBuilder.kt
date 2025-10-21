@@ -1,6 +1,7 @@
 package com.plaglefleau.clashofclansmanage
 
 import com.plaglefleau.clashofclansmanage.utils.DiscordUser
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.entities.Activity
@@ -12,15 +13,14 @@ import net.dv8tion.jda.api.utils.MemberCachePolicy
 import org.slf4j.LoggerFactory
 
 class DiscordBot {
-    val jda: JDA;
-
+    val jda: JDA
     private constructor(jda: JDA) {
         this.jda = jda
         this.jda.presence.activity = Activity.playing("I'm Ready")
     }
 
     class Builder {
-        val logger = LoggerFactory.getLogger(Builder::class.java)
+        val logger = KotlinLogging.logger {}
         val jda = JDABuilder.createLight(Credential.DISCORD_TOKEN, GatewayIntent.GUILD_MEMBERS)
             .setMemberCachePolicy(MemberCachePolicy.ALL)
             .setChunkingFilter(ChunkingFilter.ALL)
@@ -39,7 +39,7 @@ class DiscordBot {
             if (isDev) {
                 val guild = jda.getGuildById(Credential.TEST_GUILD_ID);
                 if(guild == null) {
-                    logger.error("No guild found for id: ${Credential.TEST_GUILD_ID}")
+                    logger.error { "No guild found for id: ${Credential.TEST_GUILD_ID}" }
                     return this
                 }
 
@@ -60,7 +60,7 @@ class DiscordBot {
             if (isDev) {
                 val guild = jda.getGuildById(Credential.TEST_GUILD_ID);
                 if(guild == null) {
-                    logger.error("No guild found for id: ${Credential.TEST_GUILD_ID}")
+                    logger.error { "No guild found for id: ${Credential.TEST_GUILD_ID}" }
                     return this
                 }
 
@@ -98,7 +98,7 @@ class DiscordBot {
                 if(guild.getRolesByName(DiscordUser.LEADER, true).isEmpty())
                     guild.createRole().setName(DiscordUser.LEADER).setColor(0xD4AF37).queue()
 
-                logger.info("${guild.name} : ${guild.members.size} members")
+                logger.info { "${guild.name} : ${guild.members.size} members" }
             }
         }
     }

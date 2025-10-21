@@ -4,13 +4,8 @@ import com.plaglefleau.clashofclansmanage.database.AccountManager
 import com.plaglefleau.clashofclansmanage.database.WarManager
 import com.plaglefleau.clashofclansmanage.utils.DiscordEventReply
 import com.plaglefleau.clashofclansmanage.utils.DiscordModal
-import com.plaglefleau.clashofclansmanage.utils.DiscordPermission
 import com.plaglefleau.clashofclansmanage.utils.DiscordUser
-import net.dv8tion.jda.api.components.label.Label
-import net.dv8tion.jda.api.components.selections.SelectOption
-import net.dv8tion.jda.api.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import net.dv8tion.jda.api.modals.Modal
 
 class LeaveWarButton: DiscordExecuteButton {
     override fun execute(event: ButtonInteractionEvent) {

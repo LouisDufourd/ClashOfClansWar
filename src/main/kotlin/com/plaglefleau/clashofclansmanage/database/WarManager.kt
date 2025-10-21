@@ -104,7 +104,7 @@ class WarManager {
      *
      * @return The unique ID of the most recent war, or -1 if no war exists in the database.
      */
-    fun getNextWarId(before: Calendar = Calendar.getInstance()): Int {
+    fun getNextWarId(): Int {
         val statement = connector
             .getPreparedStatement("select pk_guerre_id from guerre order by datedebut desc limit 1;")
         val resultSet = statement.executeQuery()

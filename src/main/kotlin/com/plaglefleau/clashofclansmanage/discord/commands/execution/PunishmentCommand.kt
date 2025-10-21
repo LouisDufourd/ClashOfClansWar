@@ -2,7 +2,6 @@ package com.plaglefleau.clashofclansmanage.discord.commands.execution
 
 import com.plaglefleau.clashofclansmanage.database.WarManager
 import com.plaglefleau.clashofclansmanage.database.models.CompteClash
-import com.plaglefleau.clashofclansmanage.database.models.Guerre
 import com.plaglefleau.clashofclansmanage.database.models.Rang
 import com.plaglefleau.clashofclansmanage.utils.DiscordPermission
 import com.plaglefleau.clashofclansmanage.utils.DiscordUser

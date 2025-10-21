@@ -5,15 +5,15 @@ import com.plaglefleau.clashofclansmanage.api.model.other.VerifyTokenRequest
 import com.plaglefleau.clashofclansmanage.database.AccountManager
 import com.plaglefleau.clashofclansmanage.utils.ClashUser
 import com.plaglefleau.clashofclansmanage.utils.DiscordUser
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
-import org.slf4j.LoggerFactory
 import java.sql.SQLException
 
 class LinkAccountCommand: DiscordCommand {
-    private val logger = LoggerFactory.getLogger(LinkAccountCommand::class.java)
+    private val logger = KotlinLogging.logger {}
 
     override fun execute(event: SlashCommandInteractionEvent) {
         if(event.options.size < 2) {
@@ -38,7 +38,7 @@ class LinkAccountCommand: DiscordCommand {
                 return@launch
             }
 
-            updateDatabase(playerTag, apiToken, event)
+            updateDatabase(playerTag, event)
 
             DiscordUser.assignRole(event.guild!!, event.member!!)
         }
@@ -54,7 +54,7 @@ class LinkAccountCommand: DiscordCommand {
         return verifyTokenResponse.body()?.status.equals("ok", ignoreCase = true)
     }
 
-    private suspend fun updateDatabase(playerTag: String, apiToken: String, event: SlashCommandInteractionEvent) {
+    private suspend fun updateDatabase(playerTag: String, event: SlashCommandInteractionEvent) {
         ClashUser.updateClanMembers(event to true)
 
         try {

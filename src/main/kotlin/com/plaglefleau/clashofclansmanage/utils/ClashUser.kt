@@ -42,13 +42,6 @@ object ClashUser {
         .optionalStart().appendOffset("+HH", "Z").optionalEnd()
         .toFormatter()
 
-    suspend fun updateClashData(guild: Guild, event: Pair<IReplyCallback, Boolean>? = null) {
-        logger.debug { "Starting updating discord server" }
-        updateDiscordServer(guild, event)
-        updateClanMembers(event)
-        updateClanWars(event)
-    }
-
     suspend fun updateDiscordServer(guild: Guild, event: Pair<IReplyCallback, Boolean>? = null) {
         logger.debug { "Starting updating discord server" }
         val clan = getClan(event)
@@ -95,7 +88,7 @@ object ClashUser {
         var consequence = true
 
         if (warId == null) {
-            warId = warManager.getNextWarId(startTime)
+            warId = warManager.getNextWarId()
             consequence = false
         }
 

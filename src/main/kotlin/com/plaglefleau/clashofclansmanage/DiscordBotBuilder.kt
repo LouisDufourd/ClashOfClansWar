@@ -10,7 +10,6 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.ChunkingFilter
 import net.dv8tion.jda.api.utils.MemberCachePolicy
-import org.slf4j.LoggerFactory
 
 class DiscordBot {
     val jda: JDA
@@ -37,7 +36,7 @@ class DiscordBot {
 
         fun setupCommands(isDev: Boolean, vararg commands: CommandData) : Builder {
             if (isDev) {
-                val guild = jda.getGuildById(Credential.TEST_GUILD_ID);
+                val guild = jda.getGuildById(Credential.TEST_GUILD_ID)
                 if(guild == null) {
                     logger.error { "No guild found for id: ${Credential.TEST_GUILD_ID}" }
                     return this
@@ -58,7 +57,7 @@ class DiscordBot {
 
         fun setupCommands(isDev: Boolean, commands: List<CommandData>) : Builder {
             if (isDev) {
-                val guild = jda.getGuildById(Credential.TEST_GUILD_ID);
+                val guild = jda.getGuildById(Credential.TEST_GUILD_ID)
                 if(guild == null) {
                     logger.error { "No guild found for id: ${Credential.TEST_GUILD_ID}" }
                     return this

@@ -7,11 +7,8 @@ import net.dv8tion.jda.api.Permission
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Member
 import net.dv8tion.jda.api.entities.Role
-import net.dv8tion.jda.api.events.interaction.GenericInteractionCreateEvent
 import net.dv8tion.jda.api.interactions.Interaction
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback
-import org.postgresql.translation.messages_es
-import org.slf4j.LoggerFactory
 
 object DiscordUser {
     private val logger = KotlinLogging.logger {}
@@ -90,7 +87,7 @@ object DiscordUser {
             return null
         }
 
-        if(DiscordPermission.hasPermission(member, DiscordPermission.getRolesByNames(guild, DiscordUser.NOT_MEMBER))) {
+        if(DiscordPermission.hasPermission(member, DiscordPermission.getRolesByNames(guild, NOT_MEMBER))) {
             DiscordEventReply.replyEphemeralMessage(
                 callback,
                 """

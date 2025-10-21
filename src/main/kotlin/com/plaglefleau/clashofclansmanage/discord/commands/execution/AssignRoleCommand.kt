@@ -7,7 +7,6 @@ import com.plaglefleau.clashofclansmanage.utils.DiscordUser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 
 class AssignRoleCommand : DiscordCommand {

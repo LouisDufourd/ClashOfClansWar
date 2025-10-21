@@ -2,7 +2,6 @@ package com.plaglefleau.clashofclansmanage.database
 
 import com.plaglefleau.clashofclansmanage.Credential
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.slf4j.LoggerFactory
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.PreparedStatement
